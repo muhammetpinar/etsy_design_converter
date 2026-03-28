@@ -1,7 +1,0 @@
-[theme]
-base="light"  # veya "dark"
-primaryColor="#FF7F50"  # Öne çıkan renk (örneğin buton rengi)
-backgroundColor="#FFFFFF"  # Sayfanın ana arka plan rengi
-secondaryBackgroundColor="#F0F2F6"  # Yan panel/box arka plan
-textColor="#000000"  # Yazı rengi
-font="sans serif"  # serif | sans serif | monospace
