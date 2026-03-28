@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import shutil
-
+import time
 import sys
 import pandas as pd
 from PIL import Image
@@ -144,7 +144,7 @@ with tab1:
             brand_codes[brand.name] = b_cols[col_idx].text_input(f"🆔 {brand.name}", "12")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🚀 TASARIMLARI VE MOCKUPLARI ÜRET", use_container_width=True):
+    if st.button("🚀 TASARIMLARI VE MOCKUPLARI ÜRET", width="stretch"):
         if input_image:
             with st.status("💎 Masterpiece işleniyor...", expanded=True) as status:
                 output_dir = os.path.join(SCRIPT_DIR, "outputs", f"MP_{folder_code}")
@@ -168,24 +168,26 @@ with tab1:
                 
                 status.update(label="✅ Tüm süreç tamamlandı!", state="complete", expanded=False)
             
-            st.success(f"📂 Çıktılar Kaydedildi: `{output_dir}`")
+            st.success(f"📂 Çıktılar Kaydedildi: `{output_dir}` (Sunucu Klasörü)")
             
-            # Create ZIP for download
-            zip_filename = f"MP_{folder_code}_ALL"
-            shutil.make_archive(os.path.join(SCRIPT_DIR, zip_filename), 'zip', output_dir)
+            # Create ZIP for download (Unique name with timestamp)
+            timestamp = int(time.time())
+            zip_filename = f"MP_{folder_code}_{timestamp}"
+            zip_full_path = os.path.join(SCRIPT_DIR, zip_filename)
+            shutil.make_archive(zip_full_path, 'zip', output_dir)
             
-            with open(os.path.join(SCRIPT_DIR, f"{zip_filename}.zip"), "rb") as f:
+            with open(f"{zip_full_path}.zip", "rb") as f:
                 st.download_button(
                     label="🎁 TÜM TASARIMLARI ZIP OLARAK İNDİR",
                     data=f,
-                    file_name=f"{zip_filename}.zip",
+                    file_name=f"MP_{folder_code}_Tasarimlar.zip",
                     mime="application/zip",
-                    use_container_width=True
+                    width="stretch"
                 )
 
             st.markdown('<div class="stCard">', unsafe_allow_html=True)
             st.subheader("🔎 Dijital Kimlik (Hash) Raporu")
-            st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(results), width="stretch", hide_index=True)
             st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.error("❗ Lütfen önce bir tasarım görseli yükleyin!")
@@ -204,7 +206,7 @@ with tab3:
         "ETKİNLİK": ["NEW YEARS DAY", "MARTIN LUTHER KING DAY", "PRESIDENTS DAY", "VALENTINES DAY", "ST PATRICKS DAY", "EASTER DAY", "MOTHERS DAY", "MEMORIAL DAY", "NATIONAL INDEPENDENCE DAY", "FATHERS DAY", "4TH OF JULY", "LABOR DAY", "COLUMBUS DAY", "HALLOWEEN", "VETERANS DAY", "THANKSGIVING", "CHRISTMAS"],
         "TARİH": ["1 OCAK", "17 OCAK", "21 ŞUBAT", "14 ŞUBAT", "17 MART", "17 NİSAN", "8 MAYIS", "30 MAYIS", "19 HAZİRAN", "19 HAZİRAN", "4 TEMMUZ", "5 EYLÜL", "10 EKİM", "31 EKİM", "11 KASIM", "24 KASIM", "25 ARALIK"]
     }
-    st.dataframe(pd.DataFrame(special_days_data), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(special_days_data), width="stretch", hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
