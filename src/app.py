@@ -73,20 +73,6 @@ with tab1:
             
             st.success(f"✅ Tüm işlemler başarıyla tamamlandı! Çıktı Klasörü: {output_dir}")
             
-            # 3. ZIP Download
-            zip_filename = f"MP_{folder_code}_designs.zip"
-            zip_path = os.path.join(SCRIPT_DIR, zip_filename)
-            processor.create_zip(zip_path)
-            
-            with open(zip_path, "rb") as f:
-                st.download_button(
-                    label="📦 Tüm Tasarımları ZIP Olarak İndir",
-                    data=f,
-                    file_name=zip_filename,
-                    mime="application/zip",
-                    use_container_width=True
-                )
-            
             # 4. Show Hashes
             st.subheader("🔎 Görsel Kimlik (Hash) Bilgileri")
             df_hash = pd.DataFrame(results)

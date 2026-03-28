@@ -1,14 +1,11 @@
 import os
-import zipfile
 from dataclasses import dataclass
-from typing import List, Callable
+from typing import Callable
 from PIL import Image
 from src.utils.image_processing import (
     apply_vintage_effect,
     apply_vintage_effect2,
     apply_vintage_effect3,
-    apply_vintage_effect4,
-    apply_retro_effect,
     overlay_image,
     image_to_svg
 )
@@ -46,7 +43,6 @@ class DesignProcessor:
         image_to_svg(processed_img, design_path.replace(".png", ".svg"))
         
         # 4. Generate Mockups (Overlays)
-        # Assuming asset path: assets/mockups/{brand.bg_folder}/{mockup_white}
         mockup_base_path = os.path.join(self.script_dir, "assets", "mockups", brand.bg_folder)
         
         # White background mockup
@@ -66,13 +62,3 @@ class DesignProcessor:
         )
         
         return design_path
-
-    def create_zip(self, zip_path: str):
-        """Packs the base output directory into a ZIP file."""
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
-            for root, dirs, files in os.walk(self.base_output_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, os.path.dirname(self.base_output_dir))
-                    zipf.write(file_path, arcname)
-        return zip_path
