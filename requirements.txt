@@ -1,6 +1,7 @@
-streamlit
+customtkinter
 Pillow
 pandas
 numpy
 imagehash
 openpyxl
+pyinstaller
