@@ -117,7 +117,7 @@ st.markdown("""
 
 st.markdown('<h1 class="animated-title">🎨 ETSY FAST IMAGE PRO</h1>', unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["🚀 DİJİTAL ATÖLYE", "📝 SEO SİHİRBAZI", "🇺🇸 ÖZEL GÜNLER"])
+tab1, tab2, tab3, tab4 = st.tabs(["🚀 DİJİTAL ATÖLYE", "🎨 DİNAMİK MOCKUP", "📝 SEO SİHİRBAZI", "🇺🇸 ÖZEL GÜNLER"])
 
 with tab1:
     col_l, col_r = st.columns([1, 1.4], gap="large")
@@ -193,12 +193,112 @@ with tab1:
             st.error("❗ Lütfen önce bir tasarım görseli yükleyin!")
 
 with tab2:
+    col_dl, col_dr = st.columns([1, 1], gap="large")
+    
+    with col_dl:
+        st.markdown('<div class="stCard">', unsafe_allow_html=True)
+        st.subheader("📤 Görselleri Yükle")
+        dyn_name = st.text_input("📝 Tasarım/Dosya İsmi", placeholder="Örn: My_Design")
+        dyn_design = st.file_uploader("🎨 Tasarımını Yükle (PNG)", type=["png"], key="dyn_design")
+        st.divider()
+        dyn_bg_1 = st.file_uploader("🖼️ Arka Plan 1 Yükle", type=["png", "jpg", "jpeg"], key="dyn_bg_1")
+        dyn_bg_2 = st.file_uploader("🖼️ Arka Plan 2 Yükle", type=["png", "jpg", "jpeg"], key="dyn_bg_2")
+        dyn_scale = st.slider("📏 Yerleşim Ölçeği", 0.1, 2.0, 0.75, step=0.05, key="dyn_scale")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        if st.button("✨ DİNAMİK MOCKUP ÜRET", use_container_width=True):
+            if dyn_design and (dyn_bg_1 or dyn_bg_2) and dyn_name:
+                with st.spinner("⏳ Görseller harmanlanıyor..."):
+                    # Process in memory
+                    from src.utils.image_processing import overlay_image, apply_hash_breaker, calculate_hash
+                    
+                    # 1. Prepare output folder
+                    output_dir = os.path.join(SCRIPT_DIR, "outputs", f"{dyn_name}")
+                    os.makedirs(output_dir, exist_ok=True)
+                    
+                    # 2. Process original design (Hash breaker)
+                    fg_img = Image.open(dyn_design).convert("RGBA")
+                    modified_fg = apply_hash_breaker(fg_img)
+                    
+                    design_output_path = os.path.join(output_dir, f"{dyn_name}_original.png")
+                    modified_fg.save(design_output_path)
+                    
+                    # 3. Store results in session state
+                    st.session_state.dyn_results_list = []
+                    st.session_state.dyn_results_list.append({
+                        "type": "🚀 Orijinal Tasarım (Hash Değişti)",
+                        "path": design_output_path
+                    })
+                    
+                    # 4. Generate Mockups
+                    bgs = [dyn_bg_1, dyn_bg_2]
+                    for idx, bg in enumerate(bgs):
+                        if bg is not None:
+                            out_name = f"{dyn_name}_mockup_{idx+1}.png"
+                            output_file = os.path.join(output_dir, out_name)
+                            
+                            success = overlay_image(modified_fg, bg, output_file, dyn_scale)
+                            if success:
+                                st.session_state.dyn_results_list.append({
+                                    "type": f"🖼️ Mockup {idx+1}",
+                                    "path": output_file
+                                })
+                    
+                    # 5. Create ZIP of the entire folder
+                    zip_path = os.path.join(SCRIPT_DIR, f"{dyn_name}")
+                    shutil.make_archive(zip_path, 'zip', output_dir)
+                    st.session_state.dyn_zip = f"{zip_path}.zip"
+                    
+                    st.balloons()
+            else:
+                st.error("❗ Lütfen İsim, Tasarım ve en az 1 Arka Plan yükleyin!")
+
+    with col_dr:
+        st.markdown('<div class="stCard">', unsafe_allow_html=True)
+        st.subheader("🖼️ Önizleme ve İndirme")
+        
+        if "dyn_results_list" in st.session_state and st.session_state.dyn_results_list:
+            # ZIP Download Button at the top
+            if "dyn_zip" in st.session_state and os.path.exists(st.session_state.dyn_zip):
+                with open(st.session_state.dyn_zip, "rb") as f:
+                    st.download_button(
+                        label="🎁 TÜMÜNÜ ZIP OLARAK İNDİR",
+                        data=f,
+                        file_name=f"{dyn_name}_Tum_Dosyalar.zip",
+                        mime="application/zip",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                st.divider()
+
+            # Preview individual results
+            for res in st.session_state.dyn_results_list:
+                res_path = res["path"]
+                if os.path.exists(res_path):
+                    res_img = Image.open(res_path)
+                    st.image(res_img, caption=res["type"], use_container_width=True)
+                    
+                    with open(res_path, "rb") as f:
+                        st.download_button(
+                            label=f"💾 {res['type']} Dosyasını İndir",
+                            data=f,
+                            file_name=os.path.basename(res_path),
+                            mime="image/png",
+                            key=f"dl_{res_path}",
+                            use_container_width=True
+                        )
+                    st.divider()
+        else:
+            st.info("💡 Sol taraftan görselleri yükleyip 'Üret' butonuna bastığınızda sonuçlar burada belirecektir.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with tab3:
     st.markdown('<div class="stCard">', unsafe_allow_html=True)
     st.header("📄 ChatGPT Hazır Prompt")
     st.code("""ETSY'de dijital ürün satıyorum. Bu ürünler tshirt kupa bardak vs için digital yazdırılabilir ürünler. Format olarak png ve svg satıyorum. ETSY 2025 SEO uyumlu çok fazla satış yapmak istiyorum. Satış yapabilmek ve arttırabilmek için, sana verdiğim konu başlığıyla ilgili tag,title ve açıklama çıkarmanı istiyorum. Bundan sonra bu şekilde ilerleyebilir miyiz ? Tag içerikleri virgülle ayrılsın istiyorum ki kolayca kopyala ypıştır yapabileyim. Bu yaptıklarımın amacı etsy'de satışlarımı arttırabilmek. Dolayısıyla en çok satış yaptıracak tag-tittle ve açıklamayı vermeni istiyorum. Tek bir geniş satış yaptıracak title istiyorum. Tagler en fazla 13 tane olmalı ve satış yaptıracak tagler olmalı. Açıklama kısmında bunun instant dowload ve digital ürün olduğu geçmeli ve kısa ve öz ve açıklayıcı olmalı. Her şey ingilizce ve etsy'de en çok kullanılan anahtar kelimelerle olsun. Description'ın en üst kısmında konu başlığı olsun. En sonunda ise tagler virgülle yazılsın. title 130-140 karakter arası olsun. Tagler 13 tane olsun. Tagler 1 karakter ile 20 karakter arasında olmalı.""", language="text")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with tab3:
+with tab4:
     st.markdown('<div class="stCard">', unsafe_allow_html=True)
     st.header("🇺🇸 Amerika Özel Günleri")
     

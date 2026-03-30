@@ -33,6 +33,13 @@ def apply_vintage_effect4(img):
     """Greyscale-ish vintage."""
     return img.convert("L").convert("RGBA")
 
+def apply_hash_breaker(img):
+    """Subtly modifies an image to change its hash without visual side effects."""
+    enhancer = ImageEnhance.Brightness(img)
+    # Apply a tiny 0.01% change to shift pixel values
+    img = enhancer.enhance(1.0001)
+    return img
+
 def apply_retro_effect(img):
     """Lower contrast, shifted colors."""
     enhancer = ImageEnhance.Contrast(img)
@@ -43,20 +50,25 @@ def apply_retro_effect(img):
         img = Image.merge('RGBA', (r, g, b, a))
     return img
 
-def overlay_image(foreground_img, background_path, output_path, scale_ratio=0.75):
+def overlay_image(foreground_img, background_path_or_obj, output_path, scale_ratio=0.75):
     """
     Overlays a foreground image onto a background image.
     Args:
         foreground_img (PIL.Image): The design to overlay.
-        background_path (str): Path to the mockup background.
+        background_path_or_obj (str or PIL.Image): Path to mockup or an Image object.
         output_path (str): Path to save the result.
         scale_ratio (float): Scaling factor for the foreground.
     """
-    # Ensure background exists
-    if not os.path.exists(background_path):
-        return False
-
-    background = Image.open(background_path).convert("RGBA")
+    if isinstance(background_path_or_obj, str):
+        if not os.path.exists(background_path_or_obj):
+            return False
+        background = Image.open(background_path_or_obj).convert("RGBA")
+    elif hasattr(background_path_or_obj, "convert"):
+        # It's likely already a PIL Image object
+        background = background_path_or_obj.copy().convert("RGBA")
+    else:
+        # File-like object (UploadedFile from streamit)
+        background = Image.open(background_path_or_obj).convert("RGBA")
     
     # Resize foreground
     new_size = (int(foreground_img.width * scale_ratio), int(foreground_img.height * scale_ratio))
