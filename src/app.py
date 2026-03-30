@@ -40,8 +40,6 @@ BRANDS = [
     BrandConfig("PINART", "PINART Design Kodu", "MP", apply_vintage_effect, "PINARTBackGround", "BB.png", "SB.png", "MP"),
     BrandConfig("Zeyto", "Zeyto Design Kodu", "Z", apply_vintage_effect2, "ZeytoBackGround", "BB.png", "SB.png", "ZB"),
     BrandConfig("Spring", "Spring Design Kodu", "S", apply_vintage_effect3, "SpringBackGround", "BB.png", "SB.png", "SB"),
-    BrandConfig("Bosphorus", "Bosphorus Design Kodu", "B", apply_vintage_effect, "BosphBackGround", "BB.png", "SB.png", "BWB"),
-    BrandConfig("Badis", "Badiş Art Design Kodu", "BA", apply_vintage_effect, "BadisBackGround", "BA.png", "BAS.png", "BAB"),
 ]
 
 # ---------------------- Streamlit UI ----------------------
@@ -117,7 +115,7 @@ st.markdown("""
 
 st.markdown('<h1 class="animated-title">🎨 ETSY FAST IMAGE PRO</h1>', unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs(["🚀 DİJİTAL ATÖLYE", "🎨 DİNAMİK MOCKUP", "📝 SEO SİHİRBAZI", "🇺🇸 ÖZEL GÜNLER"])
+tab1, tab2, tab3, tab4 = st.tabs(["🚀 PINART ZEYTO SPRING MOCKUP", "🎨 TEKLI MOCKUP", "📝 SEO TAG TITLE", "US ÖZEL GÜNLER"])
 
 with tab1:
     col_l, col_r = st.columns([1, 1.4], gap="large")
@@ -130,24 +128,30 @@ with tab1:
         
         st.markdown('<div class="stCard">', unsafe_allow_html=True)
         st.subheader("⚙️ İşlem Parametreleri")
-        folder_code = st.text_input("📁 Klasör Kodu", value="12")
+        folder_code = st.text_input("📁 Klasör İsmi", value="MP_")
         scale_ratio = st.slider("📏 Tasarım Ölçeği", 0.1, 2.0, 0.75, step=0.05)
+        bg_opacity = st.slider("🖼️ Arka Plan Saydamlığı", 0.0, 1.0, 0.02, step=0.01)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_r:
         st.markdown('<div class="stCard">', unsafe_allow_html=True)
-        st.subheader("🏷️ Mağaza Kodları")
+        st.subheader("🏷️ Mağaza ve Arka Plan Ayarları")
         brand_codes = {}
-        b_cols = st.columns(2)
-        for i, brand in enumerate(BRANDS):
-            col_idx = i % 2
-            brand_codes[brand.name] = b_cols[col_idx].text_input(f"🆔 {brand.name}", "12")
+        brand_bg1s = {}
+        brand_bg2s = {}
+        
+        for brand in BRANDS:
+            with st.expander(f"⚙️ {brand.name} Ayarları", expanded=True):
+                brand_codes[brand.name] = st.text_input(f"🆔 {brand.name} Kodu", "12", key=f"code_{brand.name}")
+                col_b1, col_b2 = st.columns(2)
+                brand_bg1s[brand.name] = col_b1.file_uploader("🖼️ Mockup 1", type=["png", "jpg", "jpeg"], key=f"bg1_{brand.name}")
+                brand_bg2s[brand.name] = col_b2.file_uploader("🖼️ Mockup 2", type=["png", "jpg", "jpeg"], key=f"bg2_{brand.name}")
         st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("🚀 TASARIMLARI VE MOCKUPLARI ÜRET", width="stretch"):
         if input_image:
             with st.status("💎 Masterpiece işleniyor...", expanded=True) as status:
-                output_dir = os.path.join(SCRIPT_DIR, "outputs", f"MP_{folder_code}")
+                output_dir = os.path.join(SCRIPT_DIR, "outputs", f"{folder_code}")
                 processor = DesignProcessor(SCRIPT_DIR, output_dir)
                 
                 temp_input_path = os.path.join(SCRIPT_DIR, "temp_input.png")
@@ -157,38 +161,51 @@ with tab1:
                 img = Image.open(temp_input_path).convert("RGBA")
                 
                 results = []
+                mockup_previews = [] # List to store mockup paths for UI gallery
                 progress_bar = st.progress(0)
                 
                 for i, brand in enumerate(BRANDS):
                     d_code = brand_codes[brand.name]
                     status.update(label=f"🎨 {brand.name} varyasyonları oluşturuluyor...")
-                    design_path = processor.process_brand(brand, img, d_code, scale_ratio)
+                    # Get brand-specific custom backgrounds
+                    custom_bg1 = brand_bg1s.get(brand.name)
+                    custom_bg2 = brand_bg2s.get(brand.name)
+                    
+                    res_data = processor.process_brand(brand, img, d_code, scale_ratio, bg_opacity, custom_bg1, custom_bg2)
+                    
+                    # Store paths
+                    design_path = res_data["design"]
                     results.append({"Marka": brand.name, "Dosya": os.path.basename(design_path), "Hash": calculate_hash(design_path)})
+                    
+                    mockup_previews.append({"brand": brand.name, "label": "Beyaz", "path": res_data["mockup_white"]})
+                    mockup_previews.append({"brand": brand.name, "label": "Siyah", "path": res_data["mockup_black"]})
+                    
                     progress_bar.progress((i + 1) / len(BRANDS))
                 
+                st.session_state.tab1_previews = mockup_previews
                 status.update(label="✅ Tüm süreç tamamlandı!", state="complete", expanded=False)
             
             st.success(f"📂 Çıktılar Kaydedildi: `{output_dir}` (Sunucu Klasörü)")
             
-            # Create ZIP for download (Unique name with timestamp)
-            timestamp = int(time.time())
-            zip_filename = f"MP_{folder_code}_{timestamp}"
-            zip_full_path = os.path.join(SCRIPT_DIR, zip_filename)
-            shutil.make_archive(zip_full_path, 'zip', output_dir)
-            
-            with open(f"{zip_full_path}.zip", "rb") as f:
-                st.download_button(
-                    label="🎁 TÜM TASARIMLARI ZIP OLARAK İNDİR",
-                    data=f,
-                    file_name=f"MP_{folder_code}_Tasarimlar.zip",
-                    mime="application/zip",
-                    width="stretch"
-                )
-
             st.markdown('<div class="stCard">', unsafe_allow_html=True)
             st.subheader("🔎 Dijital Kimlik (Hash) Raporu")
             st.dataframe(pd.DataFrame(results), width="stretch", hide_index=True)
             st.markdown('</div>', unsafe_allow_html=True)
+
+            # --- NEW: Image Preview Gallery ---
+            if "tab1_previews" in st.session_state and st.session_state.tab1_previews:
+                st.markdown('<div class="stCard">', unsafe_allow_html=True)
+                st.subheader("🖼️ Mockup Önizleme Galerisi")
+                
+                # Show in a grid (3 columns)
+                p_cols = st.columns(3)
+                for idx, item in enumerate(st.session_state.tab1_previews):
+                    col_idx = idx % 3
+                    with p_cols[col_idx]:
+                        if os.path.exists(item["path"]):
+                            st.image(item["path"], caption=f"{item['brand']} - {item['label']}", use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
         else:
             st.error("❗ Lütfen önce bir tasarım görseli yükleyin!")
 
@@ -198,12 +215,13 @@ with tab2:
     with col_dl:
         st.markdown('<div class="stCard">', unsafe_allow_html=True)
         st.subheader("📤 Görselleri Yükle")
-        dyn_name = st.text_input("📝 Tasarım/Dosya İsmi", placeholder="Örn: My_Design")
+        dyn_name = st.text_input("📝 Klasör İsmi", placeholder="Örn: My_Design")
         dyn_design = st.file_uploader("🎨 Tasarımını Yükle (PNG)", type=["png"], key="dyn_design")
         st.divider()
         dyn_bg_1 = st.file_uploader("🖼️ Arka Plan 1 Yükle", type=["png", "jpg", "jpeg"], key="dyn_bg_1")
         dyn_bg_2 = st.file_uploader("🖼️ Arka Plan 2 Yükle", type=["png", "jpg", "jpeg"], key="dyn_bg_2")
         dyn_scale = st.slider("📏 Yerleşim Ölçeği", 0.1, 2.0, 0.75, step=0.05, key="dyn_scale")
+        dyn_opacity = st.slider("🖼️ Arka Plan Saydamlığı", 0.0, 1.0, 0.02, step=0.01, key="dyn_opacity")
         st.markdown('</div>', unsafe_allow_html=True)
         
         if st.button("✨ DİNAMİK MOCKUP ÜRET", use_container_width=True):
@@ -237,17 +255,12 @@ with tab2:
                             out_name = f"{dyn_name}_mockup_{idx+1}.png"
                             output_file = os.path.join(output_dir, out_name)
                             
-                            success = overlay_image(modified_fg, bg, output_file, dyn_scale)
+                            success = overlay_image(modified_fg, bg, output_file, dyn_scale, dyn_opacity)
                             if success:
                                 st.session_state.dyn_results_list.append({
                                     "type": f"🖼️ Mockup {idx+1}",
                                     "path": output_file
                                 })
-                    
-                    # 5. Create ZIP of the entire folder
-                    zip_path = os.path.join(SCRIPT_DIR, f"{dyn_name}")
-                    shutil.make_archive(zip_path, 'zip', output_dir)
-                    st.session_state.dyn_zip = f"{zip_path}.zip"
                     
                     st.balloons()
             else:
@@ -258,19 +271,6 @@ with tab2:
         st.subheader("🖼️ Önizleme ve İndirme")
         
         if "dyn_results_list" in st.session_state and st.session_state.dyn_results_list:
-            # ZIP Download Button at the top
-            if "dyn_zip" in st.session_state and os.path.exists(st.session_state.dyn_zip):
-                with open(st.session_state.dyn_zip, "rb") as f:
-                    st.download_button(
-                        label="🎁 TÜMÜNÜ ZIP OLARAK İNDİR",
-                        data=f,
-                        file_name=f"{dyn_name}_Tum_Dosyalar.zip",
-                        mime="application/zip",
-                        use_container_width=True,
-                        type="primary"
-                    )
-                st.divider()
-
             # Preview individual results
             for res in st.session_state.dyn_results_list:
                 res_path = res["path"]

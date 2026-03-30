@@ -28,7 +28,7 @@ class DesignProcessor:
         self.base_output_dir = base_output_dir
         os.makedirs(self.base_output_dir, exist_ok=True)
 
-    def process_brand(self, brand: BrandConfig, input_img: Image.Image, design_code: str, scale_ratio: float):
+    def process_brand(self, brand: BrandConfig, input_img: Image.Image, design_code: str, scale_ratio: float, bg_opacity: float = 1.0, custom_bg1=None, custom_bg2=None):
         """Processes a single brand: effect -> save png/svg -> generate mockups."""
         
         # 1. Apply Effect
@@ -45,20 +45,32 @@ class DesignProcessor:
         # 4. Generate Mockups (Overlays)
         mockup_base_path = os.path.join(self.script_dir, "assets", "mockups", brand.bg_folder)
         
-        # White background mockup
+        # Determine background sources (Custom override or Default brand path)
+        bg1_source = custom_bg1 if custom_bg1 is not None else os.path.join(mockup_base_path, brand.mockup_white)
+        bg2_source = custom_bg2 if custom_bg2 is not None else os.path.join(mockup_base_path, brand.mockup_black)
+
+        # White background mockup (or custom 1)
+        mockup_white_path = os.path.join(self.base_output_dir, f"{brand.mockup_prefix}1_{design_code}.png")
         overlay_image(
             processed_img,
-            os.path.join(mockup_base_path, brand.mockup_white),
-            os.path.join(self.base_output_dir, f"{brand.mockup_prefix}1_{design_code}.png"),
-            scale_ratio
+            bg1_source,
+            mockup_white_path,
+            scale_ratio,
+            bg_opacity
         )
         
-        # Black background mockup
+        # Black background mockup (or custom 2)
+        mockup_black_path = os.path.join(self.base_output_dir, f"{brand.mockup_prefix}2_{design_code}.png")
         overlay_image(
             processed_img,
-            os.path.join(mockup_base_path, brand.mockup_black),
-            os.path.join(self.base_output_dir, f"{brand.mockup_prefix}2_{design_code}.png"),
-            scale_ratio
+            bg2_source,
+            mockup_black_path,
+            scale_ratio,
+            bg_opacity
         )
         
-        return design_path
+        return {
+            "design": design_path,
+            "mockup_white": mockup_white_path,
+            "mockup_black": mockup_black_path
+        }

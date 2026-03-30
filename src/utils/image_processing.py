@@ -50,7 +50,7 @@ def apply_retro_effect(img):
         img = Image.merge('RGBA', (r, g, b, a))
     return img
 
-def overlay_image(foreground_img, background_path_or_obj, output_path, scale_ratio=0.75):
+def overlay_image(foreground_img, background_path_or_obj, output_path, scale_ratio=0.75, bg_opacity=1.0):
     """
     Overlays a foreground image onto a background image.
     Args:
@@ -58,6 +58,7 @@ def overlay_image(foreground_img, background_path_or_obj, output_path, scale_rat
         background_path_or_obj (str or PIL.Image): Path to mockup or an Image object.
         output_path (str): Path to save the result.
         scale_ratio (float): Scaling factor for the foreground.
+        bg_opacity (float): Opacity of the background (0.0 to 1.0).
     """
     if isinstance(background_path_or_obj, str):
         if not os.path.exists(background_path_or_obj):
@@ -70,17 +71,29 @@ def overlay_image(foreground_img, background_path_or_obj, output_path, scale_rat
         # File-like object (UploadedFile from streamit)
         background = Image.open(background_path_or_obj).convert("RGBA")
     
-    # Resize foreground
+    # Apply opacity to background
+    if bg_opacity < 1.0:
+        alpha = background.split()[3]
+        alpha = alpha.point(lambda i: i * bg_opacity)
+        background.putalpha(alpha)
+    
+    # Create a white canvas (base) of the same size as the background
+    canvas = Image.new("RGBA", background.size, (255, 255, 255, 255))
+    
+    # Resize foreground (Design)
     new_size = (int(foreground_img.width * scale_ratio), int(foreground_img.height * scale_ratio))
     foreground = foreground_img.resize(new_size, resample=Image.LANCZOS)
     
-    # Center position
+    # Center position for design on canvas
     bg_width, bg_height = background.size
     fg_width, fg_height = foreground.size
     position = ((bg_width - fg_width) // 2, (bg_height - fg_height) // 2)
     
-    # Paste
-    background.paste(foreground, position, foreground)
+    # Step 1: Paste Design on White Canvas
+    canvas.paste(foreground, position, foreground)
+
+    # Step 2: Overlay semi-transparent Mockup (Background) on top
+    canvas.paste(background, (0, 0), background)
     
     # Ensure output directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -88,7 +101,8 @@ def overlay_image(foreground_img, background_path_or_obj, output_path, scale_rat
     if os.path.exists(output_path):
         os.remove(output_path)
         
-    background.save(output_path, format="PNG")
+    canvas.save(output_path, format="PNG")
+    canvas.close()
     background.close()
     return True
 
